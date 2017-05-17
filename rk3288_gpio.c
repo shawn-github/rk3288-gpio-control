@@ -24,6 +24,51 @@
 #include <linux/poll.h>
 #include "rk3288_gpio.h" 
 
+#ifdef REGISTER_INPUT_DEV
+static struct input_dev *gamekbd_dev;
+static unsigned char gamekey_val[TOUCH_KEY_MAX_CNT] ={
+    225,220,221,222,223,224,227,226,
+    228,229,230,231,232,233,234,235
+};
+#endif
+
+#ifdef USE_TIMER_POLL
+struct timer_list gamekbd_timer;	
+#endif
+static const struct of_device_id rk3288_keys_match[] = {
+	{ .compatible = "rockchip_rk3288_keys", .data = NULL},
+	{},
+};
+MODULE_DEVICE_TABLE(of, rk3288_keys_match);
+
+
+
+static void rk3288_gpio_report_val(int val)
+{
+    input_report_key(gamekbd_dev, val, 1);
+    input_sync(gamekbd_dev);
+    input_report_key(gamekbd_dev, val, 0);
+    input_sync(gamekbd_dev);
+
+    return;
+}
+
+#ifdef USE_TIMER_POLL
+static void rk3288_gpio_work_func(unsigned gpio)
+{
+    int val;
+    printk("timer work!\n");	
+    val = rk3288_gpio_get_val(gpio);
+    if(val < 0){
+        rk3288_gpio_msg("get GPIO%d value fail!\n",gpio); 
+        return; 
+    }
+   
+    rk3288_gpio_report_val(val); 
+    mod_timer(&gamekbd_timer,jiffies + HZ/1);
+    return;
+}
+#endif
 
 static const struct of_device_id rk3288_gpio_match[] = {
 	{ .compatible = "rockchip_rk3288_gpio", .data = NULL},
@@ -219,6 +264,47 @@ static int rk3288_gpio_probe(struct platform_device *pdev)
 
     rk3288_gpio_msg("rk3288_gpio_probe!\n");
 
+#ifdef REGISTER_INPUT_DEV
+    gamekbd_dev = input_allocate_device();
+    if (!gamekbd_dev) {
+        printk(KERN_ERR "alloc memory for input device fail\n");
+        return -ENOMEM;
+    }
+    gamekbd_dev->name = DEVICE_NAME;
+    gamekbd_dev->phys = "input/game_key";
+    gamekbd_dev->id.bustype = BUS_HOST;
+    gamekbd_dev->id.vendor = 0x0002;
+    gamekbd_dev->id.product = 0x0002;
+    gamekbd_dev->id.version = 0x0200;
+    gamekbd_dev->evbit[0] = BIT_MASK(EV_KEY);
+
+    for (res = 0; res < TOUCH_KEY_MAX_CNT; res++)
+        set_bit(gamekey_val[res], gamekbd_dev->keybit);
+
+    error = input_register_device(gamekbd_dev);
+    if (error) {
+        printk("Register %s input device failed", DEVICE_NAME);
+        return -ENODEV;
+    }
+#endif
+
+#ifdef USE_TIMER_POLL
+   #if 0
+       gamekbd_dev->queue = create_singlethread_workqueue("KEY_QUEUE");
+       if (!gamekbd_dev->queue) {
+       printk("creat_single_thread failed\n");
+       return -1;
+       }
+       INIT_WORK(&gamekbd_dev, timer_work_func);
+   #endif 
+
+    setup_timer(&gamekbd_timer, rk3288_gpio_work_func, (unsigned long)"Timer_Out!");
+    gamekbd_timer.expires = jiffies + HZ/10;
+    add_timer(&gamekbd_timer);
+
+#endif
+
+
 #ifdef  REGISTER_CDEV
     error = alloc_chrdev_region(&devno, 0u, 1u, DEVICE_NAME);
     if (error) {
@@ -284,6 +370,9 @@ static int rk3288_gpio_remove(struct platform_device *pdev)
     unregister_chrdev_region(rk3288_gpio_devp->devno, 1u);
     kfree(rk3288_gpio_devp);
     rk3288_gpio_devp = NULL;
+#endif
+#ifdef USE_TIMER_POLL
+	del_timer(&gamekbd_timer);
 #endif
 
     rk3288_gpio_msg("rk3288_gpio_remove\n");

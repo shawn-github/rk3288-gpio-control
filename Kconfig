@@ -1,10 +1,18 @@
 #
-# gps device configuration
+#gpio device configuration
 #
-
 menuconfig RK3288_GPIO
 	bool "support GPIO devices"
 	default n
 	---help---
-	 Say Y here if you support gps
+	 Say Y here if you support gpio output 
+
+menuconfig RK3288_GPIO_INPUT
+	bool "support GPIO devices"
+	default n
+	---help---
+	 Say Y here if you support gpio input 
+
+
+
 
