@@ -64,6 +64,12 @@ static int rk3288_gpio_set_io(unsigned gpio, bool io)
     return status;
 }
 
+static void rk3288_gpio_free_io(unsigned gpio)
+{
+    gpio_free(gpio);
+    return;
+}
+
 static int rk3288_gpio_set_val(unsigned gpio, unsigned int val)
 {
      int res;
@@ -168,27 +174,29 @@ static ssize_t rk3288_gpio_write (struct file *filp, const char __user *buf,
 
     if(size > REQUEST_GPIO_SUM || size < 0 )
         size = REQUEST_GPIO_SUM;
-#if 0
-	struct rk3288_gpio_devp *array = 0;
-    array = kzalloc(size, GFP_KERNEL);
-    if (!array)
-        return -ENOMEM;
-    if (copy_from_user(array, buf, size)) {
-        kfree(array);
-        return -EFAULT;
-    }
-#else
+
     memset(arr,0,REQUEST_GPIO_SUM);
     if(copy_from_user((char *)arr, buf, size)){
         rk3288_gpio_msg("failed copy data from user");
         kfree(arr);
         return -ENXIO;
     }
-#endif
-    err = rk3288_gpio_set_val(arr[0],arr[1]);
+
+    err = rk3288_gpio_set_io(arr[0],1);
     if(err){
-        rk3288_gpio_msg("set gpio value fail!\n");
+        rk3288_gpio_msg("set io resource fail!\n");
         return EIO;
+    }
+
+    if(0 !=arr[1] || 1 != arr[1]){
+        rk3288_gpio_free_io(arr[0]);
+    }
+    else{
+        err = rk3288_gpio_set_val(arr[0],arr[1]);
+        if(err){
+            rk3288_gpio_msg("set gpio value fail!\n");
+            return EIO;
+        }
     }
     return 0;
 }
