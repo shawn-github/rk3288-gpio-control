@@ -43,29 +43,30 @@ MODULE_DEVICE_TABLE(of, rk3288_keys_match);
 
 
 
-static void rk3288_gpio_report_val(int val)
+static void rk3288_gpio_report_val(int gpio, int val)
 {
-    input_report_key(gamekbd_dev, val, 1);
+    input_report_key(gamekbd_dev, gpio, val);
     input_sync(gamekbd_dev);
-    input_report_key(gamekbd_dev, val, 0);
+    input_report_key(gamekbd_dev, gpio, val);
     input_sync(gamekbd_dev);
 
     return;
 }
 
 #ifdef USE_TIMER_POLL
-static void rk3288_gpio_work_func(unsigned gpio)
+static void rk3288_gpio_timer_func(void)
 {
-    int val;
-    printk("timer work!\n");	
-    val = rk3288_gpio_get_val(gpio);
-    if(val < 0){
-        rk3288_gpio_msg("get GPIO%d value fail!\n",gpio); 
-        return; 
+    int val,i;
+    for(i = 11; i < REQUEST_GPIO_SUM; i++){
+        val = rk3288_gpio_get_val(gpio_info_arr[i]);
+        if(val < 0){
+            rk3288_gpio_msg("get GPIO%d value fail!\n",gpio_info_arr[i]); 
+            return;
+        }else if(val != keys_save_arr[i - 11]){
+            rk3288_gpio_report_val(gpio_info_arr[i], val); 
+        }
     }
-   
-    rk3288_gpio_report_val(val); 
-    mod_timer(&gamekbd_timer,jiffies + HZ/1);
+    mod_timer(&gamekbd_timer,jiffies + HZ/1); //set timer HZ
     return;
 }
 #endif
@@ -143,12 +144,11 @@ static int rk3288_gpio_get_val(unsigned gpio)
 
 static int rk3288_gpio_cfg_hw(struct platform_device *pdev)
 {
-    int res,i=0; 
+    int res; 
     struct device_node *np = pdev->dev.of_node;
     enum of_gpio_flags get_arr[REQUEST_GPIO_SUM]; 
 
     rk3288_gpio_msg("rk3288_cfg_hw\n"); 
-
     gpio_info_arr[0] = of_get_named_gpio_flags(np, "gpio-out0", 0, &get_arr[0]);
     gpio_info_arr[1] = of_get_named_gpio_flags(np, "gpio-out1", 0, &get_arr[1]);
     gpio_info_arr[2] = of_get_named_gpio_flags(np, "gpio-out2", 0, &get_arr[2]);
@@ -160,21 +160,27 @@ static int rk3288_gpio_cfg_hw(struct platform_device *pdev)
     gpio_info_arr[8] = of_get_named_gpio_flags(np, "gpio-out8", 0, &get_arr[8]);
     gpio_info_arr[9] = of_get_named_gpio_flags(np, "gpio-out9", 0, &get_arr[9]);
     gpio_info_arr[10] = of_get_named_gpio_flags(np, "gpio-out10", 0, &get_arr[10]);
-
+    gpio_info_arr[11] = of_get_named_gpio_flags(np, "gpio-in0", 0, &get_arr[11]);
+    gpio_info_arr[12] = of_get_named_gpio_flags(np, "gpio-in1", 0, &get_arr[12]);
+    gpio_info_arr[13] = of_get_named_gpio_flags(np, "gpio-in2", 0, &get_arr[13]);
+    gpio_info_arr[14] = of_get_named_gpio_flags(np, "gpio-in3", 0, &get_arr[14]);
+    gpio_info_arr[15] = of_get_named_gpio_flags(np, "gpio-in4", 0, &get_arr[15]);
+    gpio_info_arr[16] = of_get_named_gpio_flags(np, "gpio-in5", 0, &get_arr[16]);
+    gpio_info_arr[17] = of_get_named_gpio_flags(np, "gpio-in6", 0, &get_arr[17]);
+    gpio_info_arr[18] = of_get_named_gpio_flags(np, "gpio-in7", 0, &get_arr[18]);
+    gpio_info_arr[19] = of_get_named_gpio_flags(np, "gpio-in8", 0, &get_arr[19]);
+    gpio_info_arr[20] = of_get_named_gpio_flags(np, "gpio-in9", 0, &get_arr[20]);
+    gpio_info_arr[21] = of_get_named_gpio_flags(np, "gpio-in10", 0, &get_arr[21]);
+    gpio_info_arr[22] = of_get_named_gpio_flags(np, "gpio-in11", 0, &get_arr[22]);
+    gpio_info_arr[23] = of_get_named_gpio_flags(np, "gpio-in12", 0, &get_arr[23]);
+    gpio_info_arr[24] = of_get_named_gpio_flags(np, "gpio-in13", 0, &get_arr[24]);
+    gpio_info_arr[25] = of_get_named_gpio_flags(np, "gpio-in14", 0, &get_arr[25]);
     for(res = 0;res < 0; res++){
         rk3288_gpio_msg("gpio_info_arr[%d] = %d\n",res,gpio_info_arr[res]);
     }
 
-    for(i = 0; i < 0; i++){
-        rk3288_gpio_set_io(gpio_info_arr[i],1);
-
-        res = rk3288_gpio_get_val(gpio_info_arr[i]);
-        rk3288_gpio_msg("start:%d ",res);
-
-        rk3288_gpio_set_val(gpio_info_arr[i],0);
-
-        res = rk3288_gpio_get_val(gpio_info_arr[i]);
-        printk("end:%d\n",res);
+    for(res = 11;res < 26; res++){
+        keys_save_arr[res - 11] = rk3288_gpio_get_val(gpio_info_arr[res]);
     }
     return 0;
 }
@@ -289,19 +295,10 @@ static int rk3288_gpio_probe(struct platform_device *pdev)
 #endif
 
 #ifdef USE_TIMER_POLL
-   #if 0
-       gamekbd_dev->queue = create_singlethread_workqueue("KEY_QUEUE");
-       if (!gamekbd_dev->queue) {
-       printk("creat_single_thread failed\n");
-       return -1;
-       }
-       INIT_WORK(&gamekbd_dev, timer_work_func);
-   #endif 
-
-    setup_timer(&gamekbd_timer, rk3288_gpio_work_func, (unsigned long)"Timer_Out!");
-    gamekbd_timer.expires = jiffies + HZ/10;
+    init_timer(&gamekbd_timer);
+    gamekbd_timer.expires = jiffies +2; 
+    gamekbd_timer.function = (void*)rk3288_gpio_timer_func;
     add_timer(&gamekbd_timer);
-
 #endif
 
 
