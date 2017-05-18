@@ -45,6 +45,7 @@ MODULE_DEVICE_TABLE(of, rk3288_keys_match);
 
 static void rk3288_gpio_report_val(int gpio, int val)
 {
+    printk("%d %d\n",gpio,val);
     input_report_key(gamekbd_dev, gpio, val);
     input_sync(gamekbd_dev);
     input_report_key(gamekbd_dev, gpio, val);
@@ -57,13 +58,14 @@ static void rk3288_gpio_report_val(int gpio, int val)
 static void rk3288_gpio_timer_func(void)
 {
     int val,i;
+    printk("timer out\n");
     for(i = 11; i < REQUEST_GPIO_SUM; i++){
         val = rk3288_gpio_get_val(gpio_info_arr[i]);
         if(val < 0){
             rk3288_gpio_msg("get GPIO%d value fail!\n",gpio_info_arr[i]); 
             return;
         }else if(val != keys_save_arr[i - 11]){
-            rk3288_gpio_report_val(gpio_info_arr[i], val); 
+            rk3288_gpio_report_val(gamekey_val[i - 11], val); 
         }
     }
     mod_timer(&gamekbd_timer,jiffies + HZ/1); //set timer HZ
@@ -86,21 +88,21 @@ static int rk3288_gpio_set_io(unsigned gpio, bool io)
     status = gpio_request(gpio, NULL);
     if(status < 0){
         rk3288_gpio_msg("Request GPIO%d resource fail!\n",gpio); 
-        return EIO; 
+        return -EIO; 
     }
     switch(io){
         case SET_GPIO_TO_OUTPUT:
             status = gpio_direction_output(gpio, 1);
             if(status < 0){
                 rk3288_gpio_msg("set GPIO%d output fail!\n",gpio); 
-                return EIO; 
+                return -EIO; 
             }
             break;
         case SET_GPIO_TO_INPUT:
             status = gpio_direction_input(gpio);
                 if(status < 0){
                     rk3288_gpio_msg("set GPIO%d input fail!\n",gpio); 
-                    return EIO; 
+                    return -EIO; 
                 }
             break;
         default:
@@ -125,7 +127,7 @@ static int rk3288_gpio_set_val(unsigned gpio, unsigned int val)
     res = __gpio_get_value(gpio);
     if(res < 0){
         rk3288_gpio_msg("get GPIO%d value fail!\n",gpio); 
-        return EIO; 
+        return -EIO; 
     }
     return res;
 }
@@ -180,6 +182,7 @@ static int rk3288_gpio_cfg_hw(struct platform_device *pdev)
     }
 
     for(res = 11;res < 26; res++){
+        rk3288_gpio_set_val(gpio_info_arr[res], 0);
         keys_save_arr[res - 11] = rk3288_gpio_get_val(gpio_info_arr[res]);
     }
     return 0;
@@ -236,7 +239,7 @@ static ssize_t rk3288_gpio_write (struct file *filp, const char __user *buf,
     err = rk3288_gpio_set_io(arr[0],1);
     if(err){
         rk3288_gpio_msg("set io resource fail!\n");
-        return EIO;
+        return -EIO;
     }
 
     if(0 !=arr[1] || 1 != arr[1]){
@@ -246,7 +249,7 @@ static ssize_t rk3288_gpio_write (struct file *filp, const char __user *buf,
         err = rk3288_gpio_set_val(arr[0],arr[1]);
         if(err){
             rk3288_gpio_msg("set gpio value fail!\n");
-            return EIO;
+            return -EIO;
         }
     }
     return 0;
