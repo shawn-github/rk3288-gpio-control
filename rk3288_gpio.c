@@ -22,56 +22,9 @@
 #include <linux/of_gpio.h>
 #include <linux/of_platform.h>
 #include <linux/poll.h>
+#include <linux/miscdevice.h>
 #include "rk3288_gpio.h" 
 
-#ifdef REGISTER_INPUT_DEV
-static struct input_dev *gamekbd_dev;
-static unsigned char gamekey_val[TOUCH_KEY_MAX_CNT] ={
-    225,220,221,222,223,224,227,226,
-    228,229,230,231,232,233,234,235
-};
-#endif
-
-#ifdef USE_TIMER_POLL
-struct timer_list gamekbd_timer;	
-#endif
-static const struct of_device_id rk3288_keys_match[] = {
-	{ .compatible = "rockchip_rk3288_keys", .data = NULL},
-	{},
-};
-MODULE_DEVICE_TABLE(of, rk3288_keys_match);
-
-
-
-static void rk3288_gpio_report_val(int gpio, int val)
-{
-    printk("%d %d\n",gpio,val);
-    input_report_key(gamekbd_dev, gpio, val);
-    input_sync(gamekbd_dev);
-    input_report_key(gamekbd_dev, gpio, val);
-    input_sync(gamekbd_dev);
-
-    return;
-}
-
-#ifdef USE_TIMER_POLL
-static void rk3288_gpio_timer_func(void)
-{
-    int val,i;
-    printk("timer out\n");
-    for(i = 11; i < REQUEST_GPIO_SUM; i++){
-        val = rk3288_gpio_get_val(gpio_info_arr[i]);
-        if(val < 0){
-            rk3288_gpio_msg("get GPIO%d value fail!\n",gpio_info_arr[i]); 
-            return;
-        }else if(val != keys_save_arr[i - 11]){
-            rk3288_gpio_report_val(gamekey_val[i - 11], val); 
-        }
-    }
-    mod_timer(&gamekbd_timer,jiffies + HZ/1); //set timer HZ
-    return;
-}
-#endif
 
 static const struct of_device_id rk3288_gpio_match[] = {
 	{ .compatible = "rockchip_rk3288_gpio", .data = NULL},
@@ -146,11 +99,9 @@ static int rk3288_gpio_get_val(unsigned gpio)
 
 static int rk3288_gpio_cfg_hw(struct platform_device *pdev)
 {
-    int res; 
     struct device_node *np = pdev->dev.of_node;
     enum of_gpio_flags get_arr[REQUEST_GPIO_SUM]; 
 
-    rk3288_gpio_msg("rk3288_cfg_hw\n"); 
     gpio_info_arr[0] = of_get_named_gpio_flags(np, "gpio-out0", 0, &get_arr[0]);
     gpio_info_arr[1] = of_get_named_gpio_flags(np, "gpio-out1", 0, &get_arr[1]);
     gpio_info_arr[2] = of_get_named_gpio_flags(np, "gpio-out2", 0, &get_arr[2]);
@@ -162,37 +113,21 @@ static int rk3288_gpio_cfg_hw(struct platform_device *pdev)
     gpio_info_arr[8] = of_get_named_gpio_flags(np, "gpio-out8", 0, &get_arr[8]);
     gpio_info_arr[9] = of_get_named_gpio_flags(np, "gpio-out9", 0, &get_arr[9]);
     gpio_info_arr[10] = of_get_named_gpio_flags(np, "gpio-out10", 0, &get_arr[10]);
-    gpio_info_arr[11] = of_get_named_gpio_flags(np, "gpio-in0", 0, &get_arr[11]);
-    gpio_info_arr[12] = of_get_named_gpio_flags(np, "gpio-in1", 0, &get_arr[12]);
-    gpio_info_arr[13] = of_get_named_gpio_flags(np, "gpio-in2", 0, &get_arr[13]);
-    gpio_info_arr[14] = of_get_named_gpio_flags(np, "gpio-in3", 0, &get_arr[14]);
-    gpio_info_arr[15] = of_get_named_gpio_flags(np, "gpio-in4", 0, &get_arr[15]);
-    gpio_info_arr[16] = of_get_named_gpio_flags(np, "gpio-in5", 0, &get_arr[16]);
-    gpio_info_arr[17] = of_get_named_gpio_flags(np, "gpio-in6", 0, &get_arr[17]);
-    gpio_info_arr[18] = of_get_named_gpio_flags(np, "gpio-in7", 0, &get_arr[18]);
-    gpio_info_arr[19] = of_get_named_gpio_flags(np, "gpio-in8", 0, &get_arr[19]);
-    gpio_info_arr[20] = of_get_named_gpio_flags(np, "gpio-in9", 0, &get_arr[20]);
-    gpio_info_arr[21] = of_get_named_gpio_flags(np, "gpio-in10", 0, &get_arr[21]);
-    gpio_info_arr[22] = of_get_named_gpio_flags(np, "gpio-in11", 0, &get_arr[22]);
-    gpio_info_arr[23] = of_get_named_gpio_flags(np, "gpio-in12", 0, &get_arr[23]);
-    gpio_info_arr[24] = of_get_named_gpio_flags(np, "gpio-in13", 0, &get_arr[24]);
-    gpio_info_arr[25] = of_get_named_gpio_flags(np, "gpio-in14", 0, &get_arr[25]);
-    for(res = 0;res < 0; res++){
+
+#if 0
+    int res; 
+    for(res = 0;res < 11; res++){
         rk3288_gpio_msg("gpio_info_arr[%d] = %d\n",res,gpio_info_arr[res]);
     }
-
-    for(res = 11;res < 26; res++){
-        rk3288_gpio_set_val(gpio_info_arr[res], 0);
-        keys_save_arr[res - 11] = rk3288_gpio_get_val(gpio_info_arr[res]);
-    }
+#endif
     return 0;
 }
 
 
 static int rk3288_gpio_open (struct inode *inode, struct file *filp)
 {
-    filp->private_data = rk3288_gpio_devp;
-    return -ENXIO;
+    //rk3288_gpio_msg("open chrdev %s success\n",DEVICE_NAME);
+    return 0;
 }
 
 
@@ -236,7 +171,47 @@ static ssize_t rk3288_gpio_write (struct file *filp, const char __user *buf,
         return -ENXIO;
     }
 
-    err = rk3288_gpio_set_io(arr[0],1);
+    switch(arr[0])
+    {
+        case 19:
+            arr[0] = gpio_info_arr[0];
+            break;
+        case 23:
+            arr[0] = gpio_info_arr[1];
+            break;
+        case 20:
+            arr[0] = gpio_info_arr[2];
+            break;
+        case 27:
+            arr[0] = gpio_info_arr[3];
+            break;
+        case 18:
+            arr[0] = gpio_info_arr[4];
+            break;
+        case 9:
+            arr[0] = gpio_info_arr[5];
+            break;
+        case 11:
+            arr[0] = gpio_info_arr[6];
+            break;
+        case 12:
+            arr[0] = gpio_info_arr[7];
+            break;
+        case 22:
+            arr[0] = gpio_info_arr[8];
+            break;
+        case 17:
+            arr[0] = gpio_info_arr[9];
+            break;
+        case 21:
+            arr[0] = gpio_info_arr[10];
+            break;
+        default:
+            return 0;
+    }
+
+    //rk3288_gpio_msg("get data arr = %d %d\n",arr[0],arr[1]);
+    err = rk3288_gpio_set_io(arr[0],arr[1]);
     if(err){
         rk3288_gpio_msg("set io resource fail!\n");
         return -EIO;
@@ -263,55 +238,18 @@ static const struct file_operations rk3288_gpio_fops = {
     .read    = rk3288_gpio_read,
 };
 
-
-
 static int rk3288_gpio_probe(struct platform_device *pdev)
 {
-    dev_t devno;
-    int   error;
-    int res;
-
-    rk3288_gpio_msg("rk3288_gpio_probe!\n");
-
-#ifdef REGISTER_INPUT_DEV
-    gamekbd_dev = input_allocate_device();
-    if (!gamekbd_dev) {
-        printk(KERN_ERR "alloc memory for input device fail\n");
-        return -ENOMEM;
-    }
-    gamekbd_dev->name = DEVICE_NAME;
-    gamekbd_dev->phys = "input/game_key";
-    gamekbd_dev->id.bustype = BUS_HOST;
-    gamekbd_dev->id.vendor = 0x0002;
-    gamekbd_dev->id.product = 0x0002;
-    gamekbd_dev->id.version = 0x0200;
-    gamekbd_dev->evbit[0] = BIT_MASK(EV_KEY);
-
-    for (res = 0; res < TOUCH_KEY_MAX_CNT; res++)
-        set_bit(gamekey_val[res], gamekbd_dev->keybit);
-
-    error = input_register_device(gamekbd_dev);
-    if (error) {
-        printk("Register %s input device failed", DEVICE_NAME);
-        return -ENODEV;
-    }
-#endif
-
-#ifdef USE_TIMER_POLL
-    init_timer(&gamekbd_timer);
-    gamekbd_timer.expires = jiffies +2; 
-    gamekbd_timer.function = (void*)rk3288_gpio_timer_func;
-    add_timer(&gamekbd_timer);
-#endif
-
+    int res, error;
 
 #ifdef  REGISTER_CDEV
+    dev_t devno;
+
     error = alloc_chrdev_region(&devno, 0u, 1u, DEVICE_NAME);
     if (error) {
         rk3288_gpio_msg("ERROR: alloc_chrdev_regin failed.\n");
         return error;
     }
-    rk3288_gpio_msg("major = %d, minor = %d.\n", MAJOR(devno), MINOR(devno));
 
     rk3288_gpio_devp = kmalloc(sizeof(struct rk3288_gpio_dev), GFP_KERNEL);
     if (NULL == rk3288_gpio_devp) {
@@ -349,6 +287,7 @@ static int rk3288_gpio_probe(struct platform_device *pdev)
 
     return 0;
 
+#ifdef  REGISTER_CDEV
 error_cdev_del:
     cdev_del(&rk3288_gpio_devp->cdev);
 error_kfree:
@@ -356,7 +295,7 @@ error_kfree:
     rk3288_gpio_devp = NULL;
 error_unregister_chrdev_region:
     unregister_chrdev_region(devno, 1u);
-
+#endif
     return error;
 }
 
@@ -371,10 +310,6 @@ static int rk3288_gpio_remove(struct platform_device *pdev)
     kfree(rk3288_gpio_devp);
     rk3288_gpio_devp = NULL;
 #endif
-#ifdef USE_TIMER_POLL
-	del_timer(&gamekbd_timer);
-#endif
-
     rk3288_gpio_msg("rk3288_gpio_remove\n");
     return 0;   
 } 
@@ -396,6 +331,7 @@ static int __init rk3288_gpio_init(void)
     int res;
 
     rk3288_gpio_msg("rk3288_gpio_init\n");
+
     res = platform_driver_register(&rk3288_gpio_driver);
     printk("res = %d\n",res);
     if(res){
@@ -408,6 +344,7 @@ static int __init rk3288_gpio_init(void)
 static void __exit rk3288_gpio_exit(void)
 {
     rk3288_gpio_msg("rk3288_gpio_exit\n");
+
 	platform_driver_unregister(&rk3288_gpio_driver);
     return;
 }

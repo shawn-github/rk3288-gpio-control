@@ -159,3 +159,12 @@
 	};//add by shawn
 
 };
+&i2c3 {
+	status = "okay";
+    ts@41 { 
+        compatible = "atmel,atsha204a";
+        reg = <0x41>;
+    };
+};
+
+

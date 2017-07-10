@@ -6,17 +6,11 @@
 
 #define     SET_GPIO_TO_INPUT          0
 #define     SET_GPIO_TO_OUTPUT         1
-#define     REQUEST_GPIO_SUM         26
+#define     REQUEST_GPIO_SUM           11
 #define     rk3288_gpio_msg(...)    do {printk("[RK3288-GPIO] "__VA_ARGS__);} while(0)
-
-#define     INPUT_DEV_NAME             "rk3288-kbd"
-#define     TOUCH_KEY_MAX_CNT          16
-#define     REGISTER_INPUT_DEV  
-#define     USE_TIMER_POLL      
 
 
 unsigned int gpio_info_arr[REQUEST_GPIO_SUM];
-unsigned int keys_save_arr[REQUEST_GPIO_SUM];
 #ifdef  REGISTER_CDEV
 struct rk3288_gpio_dev {
     struct cdev         cdev;
@@ -28,8 +22,6 @@ static struct rk3288_gpio_dev* rk3288_gpio_devp = NULL;
 
 #endif
 
-static void rk3288_gpio_report_val(int gpio, int val);
-static void rk3288_gpio_timer_func(void);
 static int rk3288_gpio_set_io(unsigned gpio, bool io);
 static void rk3288_gpio_free_io(unsigned gpio);
 static int rk3288_gpio_set_val(unsigned gpio, unsigned int val);
