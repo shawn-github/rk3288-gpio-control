@@ -139,7 +139,10 @@
         gpio-out8 = <&gpio8 GPIO_A7 GPIO_ACTIVE_LOW>;
         gpio-out9 = <&gpio8 GPIO_B0 GPIO_ACTIVE_LOW>;
         gpio-out10 = <&gpio8 GPIO_B1 GPIO_ACTIVE_LOW>;
+	};
 
+  rk3288_keys{
+		compatible = "rockchip_rk3288_keys";
         gpio-in0 = <&gpio2 GPIO_A0 GPIO_ACTIVE_LOW>;
         gpio-in1 = <&gpio2 GPIO_A1 GPIO_ACTIVE_LOW>;
         gpio-in2 = <&gpio2 GPIO_A2 GPIO_ACTIVE_LOW>;
@@ -155,16 +158,5 @@
         gpio-in12 = <&gpio5 GPIO_C1 GPIO_ACTIVE_LOW>;
         gpio-in13 = <&gpio5 GPIO_C2 GPIO_ACTIVE_LOW>;
         gpio-in14 = <&gpio5 GPIO_C3 GPIO_ACTIVE_LOW>;
-
-	};//add by shawn
-
+  };
 };
-&i2c3 {
-	status = "okay";
-    ts@41 { 
-        compatible = "atmel,atsha204a";
-        reg = <0x41>;
-    };
-};
-
-
