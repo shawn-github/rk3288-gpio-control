@@ -2,7 +2,7 @@
 #define __RK3288_GPIO_H_
 
 #define 	REGISTER_CDEV
-#define 	DEVICE_NAME                "rk3288-gpio"
+#define 	DEVICE_NAME                "vib"
 
 #define     SET_GPIO_TO_INPUT          0
 #define     SET_GPIO_TO_OUTPUT         1

@@ -134,7 +134,7 @@ static int rk3288_gpio_open (struct inode *inode, struct file *filp)
 static ssize_t rk3288_gpio_read (struct file *filp, const char __user *buf, 
         size_t size, loff_t *ppos)
 {
-    int err,i;
+    int i;
     char arr[REQUEST_GPIO_SUM];
 
     if(size > REQUEST_GPIO_SUM || size < 0 )
@@ -147,18 +147,18 @@ static ssize_t rk3288_gpio_read (struct file *filp, const char __user *buf,
             return -ENXIO;
         }
     }
-    memset(arr,0,REQUEST_GPIO_SUM);
-    if(copy_to_user((char *)buf,arr,size))
+    memset(arr, 0, REQUEST_GPIO_SUM);
+    if(copy_to_user((char *)buf, arr, size))
        return -1;
 
-    return err;
+    return 0;
 }
 
 
 static ssize_t rk3288_gpio_write (struct file *filp, const char __user *buf,
         size_t size, loff_t *ppos)
 {
-    int err; 
+    int err,state,gpio; 
     char arr[REQUEST_GPIO_SUM];
 
     if(size > REQUEST_GPIO_SUM || size < 0 )
@@ -170,48 +170,51 @@ static ssize_t rk3288_gpio_write (struct file *filp, const char __user *buf,
         kfree(arr);
         return -ENXIO;
     }
-
-    switch(arr[0])
+    
+    gpio = size & 0xFF;
+    state = (size >> 8) & 0xFF;
+    
+    switch(state)
     {
         case 19:
-            arr[0] = gpio_info_arr[0];
+            gpio = gpio_info_arr[0];
             break;
         case 23:
-            arr[0] = gpio_info_arr[1];
+            gpio = gpio_info_arr[1];
             break;
         case 20:
-            arr[0] = gpio_info_arr[2];
+            gpio = gpio_info_arr[2];
             break;
         case 27:
-            arr[0] = gpio_info_arr[3];
+            gpio = gpio_info_arr[3];
             break;
         case 18:
-            arr[0] = gpio_info_arr[4];
+            gpio = gpio_info_arr[4];
             break;
         case 9:
-            arr[0] = gpio_info_arr[5];
+            gpio = gpio_info_arr[5];
             break;
         case 11:
-            arr[0] = gpio_info_arr[6];
+            gpio = gpio_info_arr[6];
             break;
         case 12:
-            arr[0] = gpio_info_arr[7];
+            gpio = gpio_info_arr[7];
             break;
         case 22:
-            arr[0] = gpio_info_arr[8];
+            gpio = gpio_info_arr[8];
             break;
         case 17:
-            arr[0] = gpio_info_arr[9];
+            gpio = gpio_info_arr[9];
             break;
         case 21:
-            arr[0] = gpio_info_arr[10];
+            gpio = gpio_info_arr[10];
             break;
         default:
             return 0;
     }
 
     //rk3288_gpio_msg("get data arr = %d %d\n",arr[0],arr[1]);
-    err = rk3288_gpio_set_io(arr[0],arr[1]);
+    err = rk3288_gpio_set_io(gpio, state);
     if(err){
         rk3288_gpio_msg("set io resource fail!\n");
         return -EIO;

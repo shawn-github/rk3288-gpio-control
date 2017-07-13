@@ -57,6 +57,7 @@ static void rk3288_keys_timer_func(void)
             rk3288_keys_msg("get GPIO%d value fail!\n",keys_info_arr[i]); 
             return;
         }else if(val != keys_save_arr[i]){
+            keys_save_arr[i] = val;
             rk3288_keys_report_val(gamekey_val[i], val); 
         }
     }
