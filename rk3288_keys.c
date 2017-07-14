@@ -24,6 +24,7 @@
 #include <linux/poll.h>
 #include "rk3288_keys.h" 
 
+
 #ifdef REGISTER_INPUT_DEV
 static struct input_dev *gamekbd_dev;
 static unsigned char gamekey_val[TOUCH_KEY_MAX_CNT] ={
@@ -39,7 +40,6 @@ struct timer_list gamekbd_timer;
 
 static void rk3288_keys_report_val(int gpio, int val)
 {
-    printk("report keys%d val%d\n",gpio,val);
     input_report_key(gamekbd_dev, gpio, val);
     input_sync(gamekbd_dev);
 
@@ -49,8 +49,22 @@ static void rk3288_keys_report_val(int gpio, int val)
 #ifdef USE_TIMER_POLL
 static void rk3288_keys_timer_func(void)
 {
-    int val,i;
-    //printk("RK3288-GPIO:timer out\n");
+    int val,i,comp_key1,comp_key2;
+
+    comp_key1 = rk3288_keys_get_val(keys_info_arr[COMP_KEY_1]);
+    comp_key2 = rk3288_keys_get_val(keys_info_arr[COMP_KEY_2]);
+    if(comp_key1 < 0 || comp_key2 < 0)
+        rk3288_keys_msg("get complite key's value fail!\n"); 
+
+    if(comp_key1 == comp_key2){
+        if(comp_key1 != keys_save_arr[COMP_KEY_1] || comp_key2 != keys_save_arr[COMP_KEY_2]){
+            rk3288_keys_msg("complite key changed!\n"); 
+            keys_save_arr[COMP_KEY_1] = comp_key1;
+            keys_save_arr[COMP_KEY_2] = comp_key2;
+            rk3288_keys_report_val(gamekey_val[COMP_KEY_VAL], comp_key1); 
+        }
+    }
+
     for(i = 0; i < TOUCH_KEY_MAX_CNT; i++){
         val = rk3288_keys_get_val(keys_info_arr[i]);
         if(val < 0){
@@ -107,13 +121,14 @@ static int rk3288_keys_cfg_hw(struct platform_device *pdev)
     keys_info_arr[14] = of_get_named_gpio_flags(np, "gpio-in14", 0, &get_arr[14]);
 
 #if 0
-    for(res = 0;res < 15; res++){
+    for(res = 0;res < TOUCH_KEY_MAX_CNT; res++){
         rk3288_keys_msg("keys_info_arr[%d] = %d\n",res,keys_info_arr[res]);
     }
 #endif
 
-    for(res = 0;res < 15; res++){
+    for(res = 0;res < TOUCH_KEY_MAX_CNT; res++){
         keys_save_arr[res] = rk3288_keys_get_val(keys_info_arr[res]);
+        //rk3288_keys_msg("init val:%d\n",keys_save_arr[res]);
     }
     return 0;
 }

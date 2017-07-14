@@ -5,9 +5,11 @@
 
 #define     INPUT_DEV_NAME             "rk3288-kbd"
 #define     TOUCH_KEY_MAX_CNT          16
+#define     COMP_KEY_1                 3
+#define     COMP_KEY_2                 4 
+#define     COMP_KEY_VAL               8 
 #define     REGISTER_INPUT_DEV  
 #define     USE_TIMER_POLL      
-
 
 unsigned int keys_info_arr[TOUCH_KEY_MAX_CNT];
 unsigned int keys_save_arr[TOUCH_KEY_MAX_CNT];
