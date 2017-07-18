@@ -27,7 +27,7 @@
 
 #ifdef REGISTER_INPUT_DEV
 static struct input_dev *gamekbd_dev;
-static unsigned char gamekey_val[TOUCH_KEY_MAX_CNT] ={
+static unsigned char gamekey_val[TOUCH_KEY_MAX_CNT+1] ={
     225,220,221,222,223,224,227,226,
     228,229,230,231,232,233,234,235
 };
@@ -37,54 +37,6 @@ static unsigned char gamekey_val[TOUCH_KEY_MAX_CNT] ={
 struct timer_list gamekbd_timer;	
 #endif
 
-
-static void rk3288_keys_report_val(int gpio, int val)
-{
-    input_report_key(gamekbd_dev, gpio, val);
-    input_sync(gamekbd_dev);
-
-    return;
-}
-
-#ifdef USE_TIMER_POLL
-static void rk3288_keys_timer_func(void)
-{
-    int val,i,comp_key1,comp_key2;
-
-    comp_key1 = rk3288_keys_get_val(keys_info_arr[COMP_KEY_1]);
-    comp_key2 = rk3288_keys_get_val(keys_info_arr[COMP_KEY_2]);
-    if(comp_key1 < 0 || comp_key2 < 0)
-        rk3288_keys_msg("get complite key's value fail!\n"); 
-
-    if(comp_key1 == comp_key2){
-        if(comp_key1 != keys_save_arr[COMP_KEY_1] || comp_key2 != keys_save_arr[COMP_KEY_2]){
-            rk3288_keys_msg("complite key changed!\n"); 
-            keys_save_arr[COMP_KEY_1] = comp_key1;
-            keys_save_arr[COMP_KEY_2] = comp_key2;
-            rk3288_keys_report_val(gamekey_val[COMP_KEY_VAL], comp_key1); 
-        }
-    }
-
-    for(i = 0; i < TOUCH_KEY_MAX_CNT; i++){
-        val = rk3288_keys_get_val(keys_info_arr[i]);
-        if(val < 0){
-            rk3288_keys_msg("get GPIO%d value fail!\n",keys_info_arr[i]); 
-            return;
-        }else if(val != keys_save_arr[i]){
-            keys_save_arr[i] = val;
-            rk3288_keys_report_val(gamekey_val[i], val); 
-        }
-    }
-    mod_timer(&gamekbd_timer,jiffies + HZ/5); //set timer HZ
-    return;
-}
-#endif
-
-static const struct of_device_id rk3288_keys_match[] = {
-	{ .compatible = "rockchip_rk3288_keys", .data = NULL},
-	{},
-};
-MODULE_DEVICE_TABLE(of, rk3288_keys_match);
 
 static int rk3288_keys_get_val(unsigned gpio)
 {
@@ -98,6 +50,196 @@ static int rk3288_keys_get_val(unsigned gpio)
     return res;
 }
 
+static void rk3288_keys_report_val(int gpio, int val)
+{
+    input_report_key(gamekbd_dev, gpio, val);
+    input_sync(gamekbd_dev);
+
+    return;
+}
+
+#ifdef USE_TIMER_POLL
+static void rk3288_keys_timer_func(void)
+{
+    static int flagrightaddlefttoenter = 0;
+    static int flagfromright = 0;          
+    static int flagfromleft = 0;           
+    static int flagfromup = 0 ;
+    static int flagfromdown = 0 ;
+    static int flagbothupanddown = 0 ;
+
+    unsigned int gpio_key_new_value0 = -1, gpio_key_new_value1=-1,gpio_key_new_value2 =-1;
+    unsigned int gpio_key_new_value3 =-1, gpio_key_new_value4=-1,gpio_key_new_value5 =-1;
+    unsigned int gpio_key_new_value6 =-1, gpio_key_new_value7=-1,gpio_key_new_value9 =-1;
+    unsigned int gpio_key_new_value10=-1,gpio_key_new_value11=-1,gpio_key_new_value12=-1;
+    unsigned int gpio_key_new_value13=-1,gpio_key_new_value14=-1,gpio_key_new_value15=-1;
+
+    gpio_key_new_value0 =rk3288_keys_get_val(keys_info_arr[0]);
+    gpio_key_new_value1 =rk3288_keys_get_val(keys_info_arr[1]);
+    gpio_key_new_value2 =rk3288_keys_get_val(keys_info_arr[2]);
+    gpio_key_new_value3 =rk3288_keys_get_val(keys_info_arr[3]);
+    gpio_key_new_value4 =rk3288_keys_get_val(keys_info_arr[4]);
+    gpio_key_new_value5 =rk3288_keys_get_val(keys_info_arr[5]);
+    gpio_key_new_value6 =rk3288_keys_get_val(keys_info_arr[6]);
+    gpio_key_new_value7 =rk3288_keys_get_val(keys_info_arr[7]);
+    gpio_key_new_value9 =rk3288_keys_get_val(keys_info_arr[8]);
+    gpio_key_new_value10=rk3288_keys_get_val(keys_info_arr[9]);
+    gpio_key_new_value11=rk3288_keys_get_val(keys_info_arr[10]);
+    gpio_key_new_value12=rk3288_keys_get_val(keys_info_arr[11]);
+    gpio_key_new_value13=rk3288_keys_get_val(keys_info_arr[12]);
+    gpio_key_new_value14=rk3288_keys_get_val(keys_info_arr[13]);
+    gpio_key_new_value15=rk3288_keys_get_val(keys_info_arr[14]);
+
+    if(gpio_key_new_value0 == 0){
+        rk3288_keys_report_val(gamekey_val[0], 1);
+    }else{
+        rk3288_keys_report_val(gamekey_val[0], 0);
+    }
+
+    if((gpio_key_new_value1 == 0) && (gpio_key_new_value2 == 0)){
+        if( 1 == flagfromright ){
+            flagfromright = 0 ;            
+            rk3288_keys_report_val(gamekey_val[2], 0);
+        }
+        if( 1 == flagfromleft ){
+            flagfromleft = 0 ;
+            rk3288_keys_report_val(gamekey_val[1], 0);
+        }
+        rk3288_keys_report_val(gamekey_val[5], 1);
+        flagrightaddlefttoenter = 1 ;  
+    }else if((gpio_key_new_value1==0) && (gpio_key_new_value2==1)){  
+        if( 1 == flagrightaddlefttoenter){
+            flagrightaddlefttoenter = 0;  
+            rk3288_keys_report_val(gamekey_val[5], 0);
+        }
+        flagfromleft = 1 ;             
+        rk3288_keys_report_val(gamekey_val[1], 1);
+        flagfromright = 0 ;   
+        rk3288_keys_report_val(gamekey_val[2], 0);
+    }else if( (gpio_key_new_value1==1) && (gpio_key_new_value2==1)){  
+        if( 1 == flagrightaddlefttoenter){
+            flagrightaddlefttoenter = 0 ;  
+            rk3288_keys_report_val(gamekey_val[5], 0);
+        }else{
+            flagfromleft = 0 ;
+            flagfromright = 0 ;            
+            rk3288_keys_report_val(gamekey_val[1], 0);
+            rk3288_keys_report_val(gamekey_val[2], 0);
+        }
+    }else if((gpio_key_new_value1==1) && (gpio_key_new_value2==0)){
+        if(1 == flagrightaddlefttoenter){
+            flagrightaddlefttoenter = 0 ;
+            rk3288_keys_report_val(gamekey_val[5], 0);
+        }
+        flagfromright = 1 ;
+        rk3288_keys_report_val(gamekey_val[2], 1);
+
+        flagfromleft = 0 ;
+        rk3288_keys_report_val(gamekey_val[1], 0);
+    }
+    if((gpio_key_new_value3==0) && (gpio_key_new_value4==0)){
+        rk3288_keys_report_val(gamekey_val[8], 1);
+        flagbothupanddown = 1 ;
+    }else if( (gpio_key_new_value3==1) && (gpio_key_new_value4==1) ){
+        if(1== flagbothupanddown ){
+            rk3288_keys_report_val(gamekey_val[8], 0);
+            flagbothupanddown = 0 ;  
+        }else{
+            flagfromup = 0 ;
+            flagfromdown = 0 ;
+            rk3288_keys_report_val(gamekey_val[3], 0);
+
+            rk3288_keys_report_val(gamekey_val[4], 0);
+        }
+    }else if((gpio_key_new_value3==0) && (gpio_key_new_value4==1)){
+        if(1 == flagbothupanddown ){
+            rk3288_keys_report_val(gamekey_val[8], 0);
+            flagbothupanddown = 0 ;
+        }
+        flagfromup = 1 ;
+        rk3288_keys_report_val(gamekey_val[3], 1);
+
+        flagfromdown = 0 ;
+        rk3288_keys_report_val(gamekey_val[4], 0);
+    }else if( (gpio_key_new_value3==1) && (gpio_key_new_value4==0)){
+        if(1 == flagbothupanddown ){
+            rk3288_keys_report_val(gamekey_val[8], 0);
+            flagbothupanddown = 0 ;
+        }
+        flagfromup = 0 ;
+        rk3288_keys_report_val(gamekey_val[3], 0);
+        flagfromdown = 1 ;
+        rk3288_keys_report_val(gamekey_val[4], 1);
+    }
+    if(gpio_key_new_value5==0){
+        rk3288_keys_report_val(gamekey_val[5], 1);
+    }else{
+        rk3288_keys_report_val(gamekey_val[5], 0);
+    }
+    if(gpio_key_new_value6==0){
+        rk3288_keys_report_val(gamekey_val[6], 1);
+    }else{
+        rk3288_keys_report_val(gamekey_val[6], 0);
+    }
+    if(gpio_key_new_value7==0){
+        rk3288_keys_report_val(gamekey_val[7], 1);
+    }
+    else{
+        rk3288_keys_report_val(gamekey_val[7], 0);
+    }
+    if(gpio_key_new_value9==0){
+        rk3288_keys_report_val(gamekey_val[15], 1);
+    }
+    else{
+        rk3288_keys_report_val(gamekey_val[15], 0);
+    }
+    if(gpio_key_new_value10==0){
+        rk3288_keys_report_val(gamekey_val[9], 1);
+    }
+    else{
+        rk3288_keys_report_val(gamekey_val[9], 0);
+    }
+    if(gpio_key_new_value11==0){
+        rk3288_keys_report_val(gamekey_val[10], 1);
+    }
+    else{
+        rk3288_keys_report_val(gamekey_val[10], 0);
+    }
+    if(gpio_key_new_value12==0){
+        rk3288_keys_report_val(gamekey_val[11], 1);
+    }
+    else{
+        rk3288_keys_report_val(gamekey_val[11], 0);
+    }
+    if(gpio_key_new_value13==0){
+        rk3288_keys_report_val(gamekey_val[12], 1);
+    }
+    else{
+        rk3288_keys_report_val(gamekey_val[12], 0);
+    }
+    if(gpio_key_new_value14==0){
+        rk3288_keys_report_val(gamekey_val[13], 1);
+    }else{
+        rk3288_keys_report_val(gamekey_val[13], 0);
+    }
+    if(gpio_key_new_value15==0){
+        rk3288_keys_report_val(gamekey_val[14], 1);
+    }else{
+        rk3288_keys_report_val(gamekey_val[14], 0);
+    }
+
+    mod_timer(&gamekbd_timer,jiffies + HZ/5); //set timer HZ
+    return;
+}
+#endif
+
+static const struct of_device_id rk3288_keys_match[] = {
+	{ .compatible = "rockchip_rk3288_keys", .data = NULL},
+	{},
+};
+MODULE_DEVICE_TABLE(of, rk3288_keys_match);
+
+
 static int rk3288_keys_cfg_hw(struct platform_device *pdev)
 {
     int res; 
@@ -110,7 +252,7 @@ static int rk3288_keys_cfg_hw(struct platform_device *pdev)
     keys_info_arr[3] = of_get_named_gpio_flags(np, "gpio-in3", 0, &get_arr[3]);
     keys_info_arr[4] = of_get_named_gpio_flags(np, "gpio-in4", 0, &get_arr[4]);
     keys_info_arr[5] = of_get_named_gpio_flags(np, "gpio-in5", 0, &get_arr[5]);
-    keys_info_arr[5] = of_get_named_gpio_flags(np, "gpio-in6", 0, &get_arr[6]);
+    keys_info_arr[6] = of_get_named_gpio_flags(np, "gpio-in6", 0, &get_arr[6]);
     keys_info_arr[7] = of_get_named_gpio_flags(np, "gpio-in7", 0, &get_arr[7]);
     keys_info_arr[8] = of_get_named_gpio_flags(np, "gpio-in8", 0, &get_arr[8]);
     keys_info_arr[9] = of_get_named_gpio_flags(np, "gpio-in9", 0, &get_arr[9]);
@@ -128,7 +270,7 @@ static int rk3288_keys_cfg_hw(struct platform_device *pdev)
 
     for(res = 0;res < TOUCH_KEY_MAX_CNT; res++){
         keys_save_arr[res] = rk3288_keys_get_val(keys_info_arr[res]);
-        //rk3288_keys_msg("init val:%d\n",keys_save_arr[res]);
+        rk3288_keys_msg("init val:%d\n",keys_save_arr[res]);
     }
     return 0;
 }

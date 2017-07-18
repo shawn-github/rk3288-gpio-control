@@ -26,51 +26,51 @@
 	    };
 
 	gpio5_gpio {
-            gpio5_b0: gpio2-b0 {
+            gpio5_b0: gpio5-b0 {
 				rockchip,pins = <GPIO5_B0>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            gpio5_b1: gpio2-b1 {
+            gpio5_b1: gpio5-b1 {
 				rockchip,pins = <GPIO5_B1>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-	        gpio5_b2: gpio2-b2 {
+	        gpio5_b2: gpio5-b2 {
 				rockchip,pins = <GPIO5_B2>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};  
-            gpio5_b3: gpio2-b3 {
+            gpio5_b3: gpio5-b3 {
 				rockchip,pins = <GPIO5_B3>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            gpio5_b4: gpio2-b4 {
+            gpio5_b4: gpio5-b4 {
 				rockchip,pins = <GPIO5_B4>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            gpio5_b5: gpio2-b5 {
+            gpio5_b5: gpio5-b5 {
 				rockchip,pins = <GPIO5_B5>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-	        gpio5_b6: gpio2-b6 {
+	        gpio5_b6: gpio5-b6 {
 				rockchip,pins = <GPIO5_B6>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};  
-            gpio5_b7: gpio2-b7 {
+            gpio5_b7: gpio5-b7 {
 				rockchip,pins = <GPIO5_B7>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            gpio5_c0: gpio2-c0 {
+            gpio5_c0: gpio5-c0 {
 				rockchip,pins = <GPIO5_C0>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            gpio5_c1: gpio2-c1 {
+            gpio5_c1: gpio5-c1 {
 				rockchip,pins = <GPIO5_C1>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-	        gpio5_c2: gpio2-c2 {
+	        gpio5_c2: gpio5-c2 {
 				rockchip,pins = <GPIO5_C2>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};  
-            gpio5_c3: gpio2-c3 {
+            gpio5_c3: gpio5-c3 {
 				rockchip,pins = <GPIO5_C3>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
@@ -94,17 +94,17 @@
 				rockchip,pins = <GPIO7_B2>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            /*gpio7_c5: gpio7-c5 {
-				rockchip,pins = <GPIO7_C5>;
+            gpio7_c5: gpio7-c5 {
+				//rockchip,pins = <GPIO7_C5>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
-			};*/
+			};
 
 		};
     gpio8_gpio {
-			/*gpio8_a2: gpio8-a2 {
-				rockchip,pins = <GPIO7_A2>;
+			gpio8_a2: gpio8-a2 {
+				rockchip,pins = <GPIO8_A2>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
-			};*/
+			};
 			gpio8_a3: gpio8-a3 {
 				rockchip,pins = <GPIO8_A3>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
@@ -134,7 +134,7 @@
         gpio-out3 = <&gpio7 GPIO_B1 GPIO_ACTIVE_LOW>;
         gpio-out4 = <&gpio7 GPIO_B2 GPIO_ACTIVE_LOW>;
         gpio-out5 = <&gpio7 GPIO_C5 GPIO_ACTIVE_LOW>;//conflict
-        gpio-out6 = <&gpio8 GPIO_A2 GPIO_ACTIVE_LOW>;//conflict
+        gpio-out6 = <&gpio8 GPIO_A2 GPIO_ACTIVE_LOW>;
         gpio-out7 = <&gpio8 GPIO_A3 GPIO_ACTIVE_LOW>;
         gpio-out8 = <&gpio8 GPIO_A7 GPIO_ACTIVE_LOW>;
         gpio-out9 = <&gpio8 GPIO_B0 GPIO_ACTIVE_LOW>;
@@ -150,13 +150,22 @@
         gpio-in4 = <&gpio5 GPIO_B1 GPIO_ACTIVE_LOW>;
         gpio-in5 = <&gpio5 GPIO_B2 GPIO_ACTIVE_LOW>;
         gpio-in6 = <&gpio5 GPIO_B3 GPIO_ACTIVE_LOW>;
-        gpio-in7 = <&gpio5 GPIO_B4 GPIO_ACTIVE_LOW>;
-        gpio-in8 = <&gpio5 GPIO_B5 GPIO_ACTIVE_LOW>;
+        gpio-in7 = <&gpio5 GPIO_C2 GPIO_ACTIVE_LOW>;
+        gpio-in8 = <&gpio5 GPIO_C3 GPIO_ACTIVE_LOW>;
         gpio-in9 = <&gpio5 GPIO_B6 GPIO_ACTIVE_LOW>;
         gpio-in10 = <&gpio5 GPIO_B7 GPIO_ACTIVE_LOW>;
         gpio-in11 = <&gpio5 GPIO_C0 GPIO_ACTIVE_LOW>;
         gpio-in12 = <&gpio5 GPIO_C1 GPIO_ACTIVE_LOW>;
-        gpio-in13 = <&gpio5 GPIO_C2 GPIO_ACTIVE_LOW>;
-        gpio-in14 = <&gpio5 GPIO_C3 GPIO_ACTIVE_LOW>;
+        gpio-in13 = <&gpio5 GPIO_B4 GPIO_ACTIVE_LOW>;
+        gpio-in14 = <&gpio5 GPIO_B5 GPIO_ACTIVE_LOW>;
   };
 };
+
+&i2c4 {
+	status = "okay";
+    atsha204a@50 {
+        compatible = "atmel,atsha204a";
+        reg = <0x50>;
+    };
+};
+
