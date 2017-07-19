@@ -94,10 +94,10 @@
 				rockchip,pins = <GPIO7_B2>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
 			};
-            gpio7_c5: gpio7-c5 {
-				//rockchip,pins = <GPIO7_C5>;
+            /*gpio7_c5: gpio7-c5 {
+				rockchip,pins = <GPIO7_C5>;
 				rockchip,pull = <VALUE_PULL_DOWN>;
-			};
+			};*/
 
 		};
     gpio8_gpio {
@@ -163,9 +163,9 @@
 
 &i2c4 {
 	status = "okay";
-    atsha204a@50 {
+    atsha204a@52 {
         compatible = "atmel,atsha204a";
-        reg = <0x50>;
+        reg = <0x52>;
     };
 };
 

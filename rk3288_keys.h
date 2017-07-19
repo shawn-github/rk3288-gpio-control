@@ -5,8 +5,6 @@
 
 #define     INPUT_DEV_NAME             "rk3288-kbd"
 #define     TOUCH_KEY_MAX_CNT          15
-#define     COMP_KEY_1                 9 
-#define     COMP_KEY_2                 14 
 #define     COMP_KEY_VAL               15
 #define     REGISTER_INPUT_DEV  
 #define     USE_TIMER_POLL      
